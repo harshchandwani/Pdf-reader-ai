@@ -4,6 +4,8 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+from pydantic import BaseModel
+
 from pdf_loader.pdf_loader import load_pdf
 from text_splitter.text_splitter import split_documents
 from vectorstore_utils.vectorstore_utils import create_vectorstore
@@ -11,29 +13,72 @@ from retriever_utils.retriever_utils import build_retriever
 from rag_chain.rag_chain import build_rag_chain, rag_answer
 
 
-def main():
-    # 1️⃣ Load and prepare documents
-    docs = load_pdf("sample-pdf.pdf")
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.responses import JSONResponse
+import uuid
 
-    # 2️⃣ Split into chunks
+app = FastAPI(title="RAG PDF Q&A")
+
+# In-memory storage for session_id -> vector store / chain
+sessions = {}
+
+
+# 0️⃣ Add this near the top with your other endpoints
+
+@app.get("/status")
+async def status():
+    """
+    Simple health check endpoint.
+    Returns a JSON confirming the API is running.
+    """
+    return {"status": "ok", "message": "RAG PDF API is running!"}
+
+# 1️⃣ Upload PDF and create session
+@app.post("/upload")
+async def upload_pdf(file: UploadFile = File(...)):
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
+
+    # Save file temporarily
+    temp_file = f"temp_{uuid.uuid4()}.pdf"
+    with open(temp_file, "wb") as f:
+        f.write(await file.read())
+
+    # Process PDF → chunks → vector store
+    docs = load_pdf(temp_file)
     chunks = split_documents(docs)
-
-    # 3️⃣ Embed and store in memory
     vectorstore = create_vectorstore(chunks)
-
-    # 4️⃣ Build retriever
     retriever = build_retriever(vectorstore, k=2)
-
-    # 5️⃣ Build RAG pipeline
     chain = build_rag_chain()
 
-    # 6️⃣ Ask question
-    question = "What is res.send()?"
+    # Create session
+    session_id = str(uuid.uuid4())
+    sessions[session_id] = {
+        "vectorstore": vectorstore,
+        "retriever": retriever,
+        "chain": chain
+    }
+
+    return JSONResponse({"session_id": session_id, "message": "PDF uploaded and processed"})
+
+
+# Define request schema
+class QueryRequest(BaseModel):
+    session_id: str
+    question: str
+
+# 2️⃣ Ask query
+
+@app.post("/query")
+async def ask_query(request: QueryRequest):
+    session_id = request.session_id
+    question = request.question
+
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    retriever = sessions[session_id]["retriever"]
+    chain = sessions[session_id]["chain"]
+
     answer = rag_answer(question, retriever, chain)
-
-    print("\nQuestion:", question)
-    print("Answer:", answer)
-
-
-if __name__ == "__main__":
-    main()
+    return {"answer": answer}
