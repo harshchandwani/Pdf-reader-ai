@@ -1,0 +1,34 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Production build output
+/dist
+/build
+
+# Testing
+/coverage
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE-specific files (example for VS Code)
+.vscode/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Vite specific
+.vite/
