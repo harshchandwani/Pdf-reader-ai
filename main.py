@@ -16,17 +16,23 @@ from text_splitter.text_splitter import split_documents
 from vectorstore_utils.vectorstore_utils import create_vectorstore
 from retriever_utils.retriever_utils import build_retriever
 from rag_chain.rag_chain import build_rag_chain, rag_answer
-
+from session_cleanup.session_cleanup import cleanup_sessions
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 import uuid
+from datetime import datetime
+import asyncio
 
 app = FastAPI(title="RAG PDF Q&A")
 
 # In-memory storage for session_id -> vector store / chain
 sessions = {}
 
+@app.on_event("startup")
+async def startup_event():
+    # start background cleanup task
+    asyncio.create_task(cleanup_sessions(sessions))
 
 # 0️⃣ Add this near the top with your other endpoints
 
@@ -66,7 +72,8 @@ async def upload_pdf(file: UploadFile = File(...)):
     sessions[session_id] = {
         "vectorstore": vectorstore,
         "retriever": retriever,
-        "chain": chain
+        "chain": chain,
+        "last_active": datetime.now()
     }
 
     return JSONResponse({"session_id": session_id, "message": "PDF uploaded and processed"})
@@ -86,6 +93,10 @@ async def ask_query(request: QueryRequest):
 
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
+
+
+    # Update last activity
+    sessions[session_id]["last_active"] = datetime.now()
 
     retriever = sessions[session_id]["retriever"]
     chain = sessions[session_id]["chain"]
