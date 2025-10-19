@@ -1,8 +1,13 @@
 # ==========================================
 # 🚀 Main Script Entry
 # ==========================================
+import os
 from dotenv import load_dotenv
 load_dotenv()
+
+# Read from .env (already loaded via load_dotenv)
+MAX_PDF_SIZE_MB = int(os.getenv("MAX_PDF_SIZE_MB", 5))  # default 5 MB
+MAX_PDF_SIZE = MAX_PDF_SIZE_MB * 1024 * 1024  # convert MB to bytes
 
 from pydantic import BaseModel
 
@@ -39,6 +44,11 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
+    # Check file size
+    contents = await file.read()
+    if len(contents) > MAX_PDF_SIZE:
+        raise HTTPException(status_code=400, detail=f"PDF size exceeds the limit of {MAX_PDF_SIZE_MB} MB")
+ 
     # Save file temporarily
     temp_file = f"temp_{uuid.uuid4()}.pdf"
     with open(temp_file, "wb") as f:
