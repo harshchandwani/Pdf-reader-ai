@@ -1,0 +1,35 @@
+# Byte-code files
+*.pyc
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+
+# Virtual environment
+.venv/
+venv/
+env/
+/site/
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.bak
+*~
+.DS_Store
+
+# Test files
+.pytest_cache/
+.coverage
+
+# Logs and temporary files
+*.log
+tmp/
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+
+# pdf files
+*.pdf
