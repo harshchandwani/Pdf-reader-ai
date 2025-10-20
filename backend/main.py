@@ -29,10 +29,10 @@ app = FastAPI(title="RAG PDF Q&A")
 # In-memory storage for session_id -> vector store / chain
 sessions = {}
 
-@app.on_event("startup")
-async def startup_event():
-    # start background cleanup task
-    asyncio.create_task(cleanup_sessions(sessions))
+# @app.on_event("startup")
+# async def startup_event():
+#     # start background cleanup task
+#     asyncio.create_task(cleanup_sessions(sessions))
 
 # 0️⃣ Add this near the top with your other endpoints
 
@@ -50,17 +50,21 @@ async def upload_pdf(file: UploadFile = File(...)):
     if not file.filename.endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are allowed")
 
-    # Check file size
+    # Read file once
     contents = await file.read()
+
+    # Check size
     if len(contents) > MAX_PDF_SIZE:
-        raise HTTPException(status_code=400, detail=f"PDF size exceeds the limit of {MAX_PDF_SIZE_MB} MB")
- 
-    # Save file temporarily
+        raise HTTPException(
+            status_code=400,
+            detail=f"PDF size exceeds the limit of {MAX_PDF_SIZE_MB} MB"
+        )
+
+    # Save file
     temp_file = f"temp_{uuid.uuid4()}.pdf"
     with open(temp_file, "wb") as f:
-        f.write(await file.read())
-
-    # Process PDF → chunks → vector store
+        f.write(contents)
+    # Process PDF → chunks → vector store → retriever → RAG chain
     docs = load_pdf(temp_file)
     chunks = split_documents(docs)
     vectorstore = create_vectorstore(chunks)
