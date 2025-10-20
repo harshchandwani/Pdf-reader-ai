@@ -20,11 +20,27 @@ from session_cleanup.session_cleanup import cleanup_sessions
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import uuid
 from datetime import datetime
 import asyncio
 
 app = FastAPI(title="RAG PDF Q&A")
+
+# ✅ Allowed frontend origins
+origins = [
+    os.getenv("FRONTEND_URL", "http://localhost:8080"),   # Vite / React local dev
+    os.getenv("FRONTEND_IP", "http://127.0.0.1:8080"),  # alternative local dev
+    # Add your deployed frontend URL here when deployed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,          # Allow specific origins
+    allow_credentials=True,
+    allow_methods=["*"],            # Allow all HTTP methods (POST, GET, etc.)
+    allow_headers=["*"],            # Allow all headers
+)
 
 # In-memory storage for session_id -> vector store / chain
 sessions = {}

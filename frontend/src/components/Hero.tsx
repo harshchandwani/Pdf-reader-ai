@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Upload } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import heroBg from "@/assets/hero-bg.jpg";
 
 const Hero = () => {
   const heroRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -25,6 +27,50 @@ const Hero = () => {
 
     return () => observer.disconnect();
   }, []);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || file.type !== "application/pdf") {
+      alert("Please select a valid PDF file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file); // ✅ must match your FastAPI field name
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      const response = await fetch(`${API_URL}/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+      console.log("Upload successful:", data);
+
+      // ✅ Save session_id in sessionStorage
+      if (data.session_id) {
+        sessionStorage.setItem("session_id", data.session_id);
+      }
+
+      // ✅ Navigate to chat page
+      navigate("/chat", { state: { pdfData: data } });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("Failed to upload file. Please try again.");
+    }
+  };
+
+
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <section 
@@ -56,13 +102,18 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Link to="/chat">
-              <Button variant="hero" size="lg" className="group">
-                <Upload className="mr-2 h-5 w-5" />
-                Upload PDF
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf"
+              className="hidden"
+            />
+            <Button variant="hero" size="lg" onClick={() => handleUploadClick()}>
+              <Upload className="mr-2 h-5 w-5" />
+              Upload PDF
+              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+            </Button>
             <Button variant="glass" size="lg">
               See Demo
             </Button>
