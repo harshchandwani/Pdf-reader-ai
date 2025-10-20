@@ -29,10 +29,10 @@ app = FastAPI(title="RAG PDF Q&A")
 # In-memory storage for session_id -> vector store / chain
 sessions = {}
 
-# @app.on_event("startup")
-# async def startup_event():
-#     # start background cleanup task
-#     asyncio.create_task(cleanup_sessions(sessions))
+@app.on_event("startup")
+async def startup_event():
+    # start background cleanup task
+    asyncio.create_task(cleanup_sessions(sessions))
 
 # 0️⃣ Add this near the top with your other endpoints
 
@@ -73,11 +73,13 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     # Create session
     session_id = str(uuid.uuid4())
+    # After saving your temporary file (example: temp_file = f"temp_{uuid.uuid4()}.pdf")
     sessions[session_id] = {
         "vectorstore": vectorstore,
         "retriever": retriever,
         "chain": chain,
-        "last_active": datetime.now()
+        "last_active": datetime.now(),
+        "pdf_path": temp_file  # 👈 store the temp PDF file path here
     }
 
     return JSONResponse({"session_id": session_id, "message": "PDF uploaded and processed"})
