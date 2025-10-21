@@ -29,9 +29,7 @@ app = FastAPI(title="RAG PDF Q&A")
 
 # ✅ Allowed frontend origins
 origins = [
-    os.getenv("FRONTEND_URL", "https://pdf-reader-fyafbbfus-harshchandwanis-projects.vercel.app"),   # Vite / React local dev
-    os.getenv("FRONTEND_IP", "http://127.0.0.1:8080"),  # alternative local dev
-    # Add your deployed frontend URL here when deployed
+    os.getenv("FRONTEND_URL", "https://pdf-reader-fyafbbfus-harshchandwanis-projects.vercel.app"),   # Vite / React local dev server
 ]
 
 app.add_middleware(
