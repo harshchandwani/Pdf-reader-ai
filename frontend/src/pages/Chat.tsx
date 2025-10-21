@@ -1,8 +1,7 @@
-// filepath: /Users/harshchandwani/Projects/Pdf-reader-ai/frontend/src/pages/Chat.tsx
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // ✅ added useNavigate
 import { ArrowLeft, Send, Upload, FileText } from "lucide-react";
 
 const Chat = () => {
@@ -12,8 +11,17 @@ const Chat = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Ref for auto-scroll
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const navigate = useNavigate(); // ✅ navigation instance
+
+  // ✅ Check session_id on mount
+  useEffect(() => {
+    const session_id = sessionStorage.getItem("session_id");
+    if (!session_id) {
+      console.warn("No session found — redirecting to home");
+      navigate("/", { replace: true });
+    }
+  }, [navigate]);
 
   // Scroll to bottom on message change
   useEffect(() => {
@@ -24,7 +32,6 @@ const Chat = () => {
     const question = inputMessage.trim();
     if (!question || isLoading) return;
 
-    // Add user message + temporary assistant message
     setMessages((prev) => [
       ...prev,
       { role: "user", content: question },
@@ -36,7 +43,9 @@ const Chat = () => {
     try {
       const session_id = sessionStorage.getItem("session_id");
       if (!session_id) {
-        throw new Error("No session_id found in sessionStorage");
+        console.warn("Session expired — redirecting to home");
+        navigate("/", { replace: true });
+        return;
       }
 
       const API_URL = import.meta.env.VITE_API_URL;
@@ -45,11 +54,16 @@ const Chat = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          session_id,
-          question,
-        }),
+        body: JSON.stringify({ session_id, question }),
       });
+
+      // ✅ Handle 404 — invalid/expired session
+      if (response.status === 404) {
+        console.warn("Session not found (404) — redirecting to home");
+        sessionStorage.removeItem("session_id");
+        navigate("/", { replace: true });
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("API request failed");
@@ -57,14 +71,13 @@ const Chat = () => {
 
       const data = await response.json();
 
-      // Determine reply text
       const assistantReply =
         data.answer ||
         data.reply ||
         data.response ||
         (typeof data === "string" ? data : JSON.stringify(data));
 
-      // Replace the temporary "..." message with the real response
+      // Replace temporary message
       setMessages((prev) => {
         const newMessages = [...prev];
         newMessages[newMessages.length - 1] = {
