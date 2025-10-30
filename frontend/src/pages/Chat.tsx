@@ -48,7 +48,7 @@ const Chat = () => {
         return;
       }
 
-      const API_URL = import.meta.env.VITE_API_URL;
+      const API_URL = import.meta.env.VITE_BACKEND_URL;;
       const response = await fetch(`${API_URL}/query`, {
         method: "POST",
         headers: {

@@ -27,11 +27,13 @@ import asyncio
 
 app = FastAPI(title="RAG PDF Q&A")
 
-# ✅ Allowed frontend origins
-origins = [
-    os.getenv("FRONTEND_URL", "https://pdf-reader-ai-puce.vercel.app/"),   # Vite / React local dev server
+# ✅ Load allowed origins from environment variable (comma-separated)
+frontend_urls = os.getenv("FRONTEND_URL", "https://pdf-reader-ai-puce.vercel.app")
 
-]
+
+print("Allowed frontend origins:", frontend_urls)
+# ✅ Allowed frontend origins
+origins = [url.strip() for url in frontend_urls.split(",")]
 
 app.add_middleware(
     CORSMiddleware,

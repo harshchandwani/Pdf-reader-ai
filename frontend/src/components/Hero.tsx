@@ -39,8 +39,8 @@ const Hero = () => {
     formData.append("file", file);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL;
-
+      const API_URL = import.meta.env.VITE_BACKEND_URL;
+      console.log(API_URL);
       const response = await fetch(`${API_URL}/upload`, {
         method: "POST",
         body: formData,
@@ -49,7 +49,6 @@ const Hero = () => {
       if (!response.ok) throw new Error("Upload failed");
 
       const data = await response.json();
-      console.log("Upload successful:", data);
 
       if (data.session_id) sessionStorage.setItem("session_id", data.session_id);
 
